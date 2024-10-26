@@ -1,0 +1,122 @@
+---
+title: "Assignment MP2"
+author: "Sumin Oh"
+date: "2024-10-26"
+output: html_document
+---
+
+#### 1. Import data and create Time series
+```{r}
+
+library(fpp2)
+library(readr)
+library(readxl)
+insurance=read.csv("/Users/suminoh/Downloads/insurance.csv")
+insurance_ts=ts(insurance$Quotes,start=c(2002,1),frequency=12)
+
+```
+
+#### 2. Verify how much history to include in your analysis
+```{r}
+plot(insurance_ts)
+# It seems that the graph doesn't have clear trend or seasonality, I concluded that it'll be okay to include all the history from 2002 to 2005 to forecast.
+```
+
+#### 3. Hypothesize if the dataset has trend, seasonality, or both. 
+```{r}
+#By looking at the plot of the time series data, the dataset seems to have a increasing trend as time goes, still, I'm not so sure if it's very clear, since the data has huge ups and downs. Same goes for the seasonality. So data analysis should be done to find out if this data has trend or seasonality.
+```
+
+#### 4.Verify using Acf
+```{r}
+Acf(insurance_ts)
+#There’s only slight autocorrelation in the first few lags, which then gradually decreases within the confidence interval. This suggests that the time series likely has no strong seasonality or trend over the long term.
+```
+
+#### 5. Verify using Decomposition
+```{r}
+ins_decomp=decompose(insurance_ts)
+plot(ins_decomp)
+
+# It's clear that the data has no trend, since the trend line moves up and down in the given period. However, unlike what I assumed above, the data seems to have seasonality to some extent, as the seasonality line shows some pattern of ups and downs.
+```
+
+#### 6. Choose an accuracy measure
+```{r}
+# I chose MAPE to measure the accuracy to see the errors in percentage.
+```
+
+#### 7. Create a forecast model for the next 12 months. Include Naive, Average, Exponential Smoothing, HoltWinters, and Decomposition (both types). 
+```{r}
+
+#1. Naive : This model forecasts the futre values based on the last value of the data. So the forecast values for the next 12 months are consistent at 14.49
+ins_naive=naive(insurance_ts,h=12)
+ins_naive
+
+#2. Average : This model predicts the future value based on the average of given dataset. So the forecast for the next 12 months are the same at 13.60
+ins_avg=meanf(insurance_ts,h=12)
+ins_avg
+
+#2-1. Moving Average : This uses the average of the specific period of the dataset, so generally this reflects the most current trend of the data. I used the latest 12 months' data.
+ins_MA12=ma(insurance_ts,order=12)
+plot(ins_MA12)
+ins_MA12_fc=forecast(ins_MA12,h=12)
+
+#3. Exponential smoothing : This is done with HW model without beta(trend) and gamma(seasonality).
+ins_SES = HoltWinters(insurance_ts,beta=FALSE,gamma=FALSE)
+ins_SES_fc=forecast(ins_SES,h=12)
+
+#4. Holt-Winters : HoltWinters model uses level, trend, and seasonality for forecasting.
+ins_HW=hw(insurance_ts,h=12)
+ins_HW
+
+#5. Decomposition : With stl, we can decompose the data into factors such as seasonal, trend, and remainder. 
+ins_decomp=stl(insurance_ts,s.window = "periodic")
+plot(ins_decomp)
+ins_decomp_fc=forecast(ins_decomp,h=12)
+
+# I drew all the forecast lines in a plot.
+
+plot(insurance_ts,xlim=c(2004,2006))
+lines(ins_naive$mean,col="red")
+lines(ins_avg$mean, col="pink")
+lines(ins_MA12_fc$mean,col="blue")
+lines(ins_SES_fc$mean,col="green")
+lines(ins_HW$mean,col="brown")
+lines(ins_decomp_fc$mean,col="yellow")
+```
+
+#### 8. Show model rank with accuracy measures
+```{r}
+a = accuracy(ins_naive)
+b = accuracy(ins_avg)
+c = accuracy(ins_MA12_fc)
+d = accuracy(ins_SES_fc)
+e = accuracy(ins_HW)
+f = accuracy(ins_decomp_fc)
+
+accuracy = rbind(a,b,c,d,e,f)
+rownames(accuracy) = c('naive','avg','MA','SES','HW','Decomp')
+accuracy
+
+```
+
+#### 9. Choose which models and how are you going to use them for Forecasting
+```{r}
+# I chose Moving Avearge model, as it has the smallest value of MAPE. 
+```
+
+#### 10. Provide the forecast for the next 12 months (point and range) and explain why you feel confident with these forecasts
+```{r}
+plot(ins_MA12_fc)
+ins_MA12_fc
+
+# MA model outperformed other models in accuracy. Also, I could see the confidence intervals are narrow and remain within appropriate level, and a narrow confidence interval indicates that model is likely to predict accurately. Considering that the dataset doesn't have clear trend or seasonality, it's natural that MA model can predict accurately as it is based on the average of the previous values.
+
+```
+
+
+
+
+
+
